@@ -103,8 +103,21 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center justify-between gap-1.5 flex-wrap">
           <InterestIndicator level={prospect.interestLevel} />
+          {prospect.targetSalary != null && prospect.targetSalary > 0 && (
+            <span
+              className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 tabular-nums"
+              data-testid={`text-salary-${prospect.id}`}
+            >
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 0,
+              }).format(prospect.targetSalary)}{" "}
+              / yr
+            </span>
+          )}
         </div>
 
         {prospect.jobUrl && (
