@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Prospect } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Trash2, Pencil, Flame, ThumbsUp, Minus } from "lucide-react";
+import { ExternalLink, Trash2, Pencil, Flame, ThumbsUp, Minus, CalendarClock } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,49 @@ function InterestIndicator({ level }: { level: string }) {
     default:
       return null;
   }
+}
+
+type DeadlineUrgency = "overdue" | "urgent" | "soon" | "fine";
+
+function classifyDeadline(deadlineDateStr: string): DeadlineUrgency {
+  const [year, month, day] = deadlineDateStr.split("-").map(Number);
+  const deadlineMidnight = new Date(year, month - 1, day);
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffMs = deadlineMidnight.getTime() - todayMidnight.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return "overdue";
+  if (diffDays <= 3) return "urgent";
+  if (diffDays <= 7) return "soon";
+  return "fine";
+}
+
+function formatDeadlineDate(deadlineDateStr: string): string {
+  const [year, month, day] = deadlineDateStr.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
+}
+
+const urgencyStyles: Record<DeadlineUrgency, string> = {
+  overdue: "text-red-800 dark:text-red-400",
+  urgent: "text-red-500 dark:text-red-400",
+  soon: "text-amber-500 dark:text-amber-400",
+  fine: "text-emerald-600 dark:text-emerald-400",
+};
+
+function DeadlineBadge({ dateStr, prospectId }: { dateStr: string; prospectId: number }) {
+  const urgency = classifyDeadline(dateStr);
+  const className = `inline-flex items-center gap-1 text-[11px] font-medium ${urgencyStyles[urgency]}`;
+
+  return (
+    <span className={className} data-testid={`text-deadline-${prospectId}`}>
+      <CalendarClock className="w-3 h-3 shrink-0" />
+      {urgency === "overdue" ? "Overdue" : `Due: ${formatDeadlineDate(dateStr)}`}
+    </span>
+  );
 }
 
 export function ProspectCard({ prospect }: { prospect: Prospect }) {
@@ -119,6 +162,10 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
             </span>
           )}
         </div>
+
+        {prospect.applicationDeadline && (
+          <DeadlineBadge dateStr={prospect.applicationDeadline} prospectId={prospect.id} />
+        )}
 
         {prospect.jobUrl && (
           <a
