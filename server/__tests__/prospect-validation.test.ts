@@ -1,4 +1,4 @@
-import { validateProspect } from "../prospect-helpers";
+import { validateProspect, getDeadlineUrgency } from "../prospect-helpers";
 
 describe("prospect creation validation", () => {
   test("rejects a blank company name", () => {
@@ -97,5 +97,54 @@ describe("target salary validation", () => {
 
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
+  });
+});
+
+describe("application deadline classification", () => {
+  // Use a fixed reference date so tests are always deterministic.
+  // Reference: March 12, 2026 (Wednesday)
+  const TODAY = new Date(2026, 2, 12);
+
+  test("deadline field is optional — job can be created without it", () => {
+    const result = validateProspect({
+      companyName: "Acme",
+      roleTitle: "Engineer",
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test("deadline within 3 days is classified as urgent", () => {
+    // March 14 = 2 days away → urgent
+    expect(getDeadlineUrgency("2026-03-14", TODAY)).toBe("urgent");
+  });
+
+  test("deadline on the same day is classified as urgent", () => {
+    // March 12 = 0 days away → urgent
+    expect(getDeadlineUrgency("2026-03-12", TODAY)).toBe("urgent");
+  });
+
+  test("deadline exactly 3 days away is classified as urgent", () => {
+    expect(getDeadlineUrgency("2026-03-15", TODAY)).toBe("urgent");
+  });
+
+  test("deadline within 4–7 days is classified as soon", () => {
+    // March 17 = 5 days away → soon
+    expect(getDeadlineUrgency("2026-03-17", TODAY)).toBe("soon");
+  });
+
+  test("deadline exactly 7 days away is classified as soon", () => {
+    expect(getDeadlineUrgency("2026-03-19", TODAY)).toBe("soon");
+  });
+
+  test("deadline beyond 7 days is classified as fine", () => {
+    // March 25 = 13 days away → fine
+    expect(getDeadlineUrgency("2026-03-25", TODAY)).toBe("fine");
+  });
+
+  test("past deadline is classified as overdue", () => {
+    // March 11 = 1 day ago → overdue
+    expect(getDeadlineUrgency("2026-03-11", TODAY)).toBe("overdue");
   });
 });

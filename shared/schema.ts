@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -23,6 +23,7 @@ export const prospects = pgTable("prospects", {
   interestLevel: text("interest_level").notNull().default("Medium"),
   notes: text("notes"),
   targetSalary: integer("target_salary"),
+  applicationDeadline: date("application_deadline"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -47,6 +48,14 @@ export const insertProspectSchema = createInsertSchema(prospects).omit({
       .number()
       .int()
       .min(1, "Salary must be a positive number")
+      .nullable()
+      .optional(),
+  ),
+  applicationDeadline: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined ? null : String(val)),
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Deadline must be a valid date (YYYY-MM-DD)")
       .nullable()
       .optional(),
   ),

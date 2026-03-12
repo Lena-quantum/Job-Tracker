@@ -55,6 +55,17 @@ export async function registerRoutes(
       updates.interestLevel = level;
     }
 
+    if (body.applicationDeadline !== undefined) {
+      const raw = body.applicationDeadline;
+      if (raw === null || raw === "") {
+        updates.applicationDeadline = null;
+      } else if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        updates.applicationDeadline = raw;
+      } else {
+        return res.status(400).json({ message: "Deadline must be a valid date (YYYY-MM-DD)" });
+      }
+    }
+
     if (body.targetSalary !== undefined) {
       const raw = body.targetSalary;
       if (raw === null || raw === "" || raw === 0) {

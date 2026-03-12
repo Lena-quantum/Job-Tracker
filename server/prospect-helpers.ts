@@ -59,3 +59,39 @@ export function validateProspect(data: Record<string, unknown>): { valid: boolea
 export function isTerminalStatus(status: string): boolean {
   return status === "Rejected" || status === "Withdrawn" || status === "Offer";
 }
+
+export type DeadlineUrgency = "overdue" | "urgent" | "soon" | "fine";
+
+/**
+ * Classifies the urgency of an application deadline.
+ *
+ * @param deadlineDateStr - ISO date string "YYYY-MM-DD"
+ * @param today           - Override today's date (used in tests for determinism)
+ * @returns urgency level
+ *
+ * Rules (based on calendar days remaining, time-of-day ignored):
+ *   past           → "overdue"
+ *   0 – 3 days     → "urgent"
+ *   4 – 7 days     → "soon"
+ *   8 + days       → "fine"
+ */
+export function getDeadlineUrgency(
+  deadlineDateStr: string,
+  today: Date = new Date(),
+): DeadlineUrgency {
+  const [year, month, day] = deadlineDateStr.split("-").map(Number);
+  const deadlineMidnight = new Date(year, month - 1, day);
+  const todayMidnight = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+
+  const diffMs = deadlineMidnight.getTime() - todayMidnight.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "overdue";
+  if (diffDays <= 3) return "urgent";
+  if (diffDays <= 7) return "soon";
+  return "fine";
+}
