@@ -55,6 +55,19 @@ export async function registerRoutes(
       updates.interestLevel = level;
     }
 
+    if (body.targetSalary !== undefined) {
+      const raw = body.targetSalary;
+      if (raw === null || raw === "" || raw === 0) {
+        updates.targetSalary = null;
+      } else {
+        const n = Math.round(Number(raw));
+        if (isNaN(n) || n < 1) {
+          return res.status(400).json({ message: "Salary must be a positive number" });
+        }
+        updates.targetSalary = n;
+      }
+    }
+
     const updated = await storage.updateProspect(id, updates);
     res.json(updated);
   });
